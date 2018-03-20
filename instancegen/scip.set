@@ -1,0 +1,13 @@
+# SCIP version 3.2.1
+
+# name of the VBC tool output file, or - if no VBC tool output should be created
+# [type: string, default: "-"]
+visual/vbcfilename = "sciptree.vbc"
+
+# should the real solving time be used instead of a time step counter in visualization?
+# [type: bool, range: {TRUE,FALSE}, default: TRUE]
+visual/realtime = FALSE
+
+# maximal memory usage in MB; reported memory usage is lower than real memory usage!
+# [type: real, range: [0,1.79769313486232e+308], default: 1e+20]
+# limits/memory = 4000
