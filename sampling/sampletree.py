@@ -1,7 +1,6 @@
 import plot as p
 from cmath import sqrt
 
-
 def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed):
     print("Sampling tree...")
     if SampleMethod.genMethod == "uniform":
