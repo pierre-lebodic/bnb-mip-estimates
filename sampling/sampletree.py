@@ -33,11 +33,11 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed):
     confidenceRadii = calculateConfidenceRadii(sampleSet)
     return (sampleSet,sampleEstimates,confidenceRadii)
 
-def sampleStats(treesize,estimates,intervals,filename,bias,SampleMethod):
+def sampleStats(treesize,estimates,radii,filename,bias,SampleMethod):
     average = estimates[-1]
     print("{} - {}".format(SampleMethod.branchType,SampleMethod.genMethod))
     print("Average sample:",average,sep='\t\t')
-    print("Confidence radius:",intervals[-1].real,sep='\t')
+    print("Confidence radius:",radii[-1].real,sep='\t')
     print("Actual size:",treesize,sep='\t\t')
     print("Err of Ave:",abs(round(100*(treesize-average)/(treesize+bias),2)),sep='\t\t')
 
