@@ -13,7 +13,7 @@ class GenericSG:
 class OnlineBasedSG(GenericSG):
 
     colour = "r"
-    genMethod = "online"
+    genMethod = "$online$"
 
     def generator(self,tree,samplenum):
         tree.genLeafList()
@@ -30,7 +30,7 @@ class OnlineBasedSG(GenericSG):
 class UniformSG(GenericSG):
 
     colour = "g"
-    genMethod = "uniform"
+    genMethod = "$uniform$"
 
     def generator(self,tree,samplenum,seed):
         tree.genLeafList()
@@ -50,8 +50,8 @@ class UniformSG(GenericSG):
 
 class TreeBasedSG(GenericSG):
 
-    colour = "c"
-    genMethod = "treebased"
+    colour = "r"
+    genMethod = "$treebased$"
 
     def generator(self,tree,samplenum):
         tree.root.cascadePhi(self.phiBased)

@@ -3,7 +3,7 @@ from cmath import sqrt
 
 def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed):
     print("Sampling tree...")
-    if SampleMethod.genMethod == "uniform":
+    if SampleMethod.genMethod == "$uniform$":
         samplegen = SampleMethod.generator(tree,samplenum,seed)
     else:
         samplegen = SampleMethod.generator(tree,samplenum)
@@ -55,5 +55,5 @@ def calculateConfidenceRadii(sampleSet):
         mean = prevmean + (sample.totalPhi / weightSum) * (sample.totalSize - prevmean)
         Sn += sample.totalPhi * (sample.totalSize - prevmean) * (sample.totalSize - mean)
         variance = sqrt(Sn/weightSum)
-        confidenceRadii.append(variance / sqrt(0.1))
+        confidenceRadii.append( abs(1 - weightSum) * (variance / sqrt(0.01)) )
     return confidenceRadii

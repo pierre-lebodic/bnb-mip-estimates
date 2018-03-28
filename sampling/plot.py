@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
 
-def plotEstimates(estimates,SampleMethod,treesize,filename,cmdstr,seed):
+def plotEstimates(estimates,radii,SampleMethod,GenClass,treesize,filename,cmdstr,seed):
     plt.figure(1)
-    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label=SampleMethod.branchType)
+    lower_ci = [estimates[i] - radii[i].real for i in range(len(estimates))]
+    upper_ci = [estimates[i] + radii[i].real for i in range(len(estimates))]
+    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label=SampleMethod.branchType + " " + GenClass.genMethod)
+    plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4, label = '$99% CI$')
     plt.xlabel('$k$',fontsize=18)
     plt.ylabel('$E_k$',fontsize=18)
     plt.title("{}".format(filename.rsplit('/',1)[-1]))

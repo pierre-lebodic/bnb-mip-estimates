@@ -102,9 +102,9 @@ for BranchClass in branchingMethods:
         samples, estimates, radii = st.sampleTree(tree,args.sample_number,SampleMethod,args.filename,args.debug,args.seed)
         st.sampleStats(tree.root.subtreesize,estimates,radii,args.filename,args.bias,SampleMethod)
         if args.graph is not None:
-            p.plotEstimates(estimates,SampleMethod,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed)
+            p.plotEstimates(estimates,radii,SampleMethod,GenClass,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed)
             if args.graph >= 2:
-                if GenClass.genMethod == "online":
+                if GenClass.genMethod == "$online$":
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,SampleMethod)
                 p.plotDepths(samples,args.filename,SampleMethod)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,SampleMethod)
