@@ -107,7 +107,7 @@ for BranchClass in branchingMethods:
         if args.graph is not None:
             p.plotEstimates(estimates,stds,SampleMethod,GenClass,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed,args.confidence_level,args.confidence_noplot)
             if args.graph >= 2:
-                if GenClass.genMethod == "$online$":
+                if GenClass.genMethod == "online":
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,SampleMethod)
                 p.plotDepths(samples,args.filename,SampleMethod)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,SampleMethod)
