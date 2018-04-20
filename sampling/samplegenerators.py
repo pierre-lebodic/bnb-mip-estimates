@@ -50,7 +50,7 @@ class UniformSG(GenericSG):
 
 class TreeBasedSG(GenericSG):
 
-    colour = "c"
+    colour = "b"
     genMethod = "treebased"
 
     def generator(self,tree,samplenum):

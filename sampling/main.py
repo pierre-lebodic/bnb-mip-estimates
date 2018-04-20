@@ -21,6 +21,9 @@ parser.add_argument("--method",type=int,choices=[0,1,2],default=0,help="0 - Bias
 parser.add_argument("--bias",type=int,default=0,help="bias the relative error values")
 parser.add_argument("--seed",type=str,default=0,help="seed for shuffling of uniform leaf list")
 parser.add_argument("sample_number",type=int,help="number of samples")
+parser.add_argument("--confidence-level",type=float,dest="confidence_level",default=0.90,help="How strong should the confidence level of the confidence interval be? Values between 0 and 1")
+parser.add_argument("--confidence-noplot",dest="confidence_noplot",help="Should the confidence interval be hidden in the plot?",action="store_true")
+parser.add_argument("--stds-not-weighted",dest="stds_not_weighted",help="Should the confidence interval not be weighted by progress of tree exploration?",action="store_true")
 source.add_argument("-f","--filename",help="abc file to process")
 source.add_argument("--svb",nargs=3,type=int,help="Generate an SVB tree with values [left] [right] [gap]")
 source.add_argument("--mvb",nargs=2,help="Generate an MVB tree with vars from [file] [gap]")
@@ -99,10 +102,10 @@ if args.uniform:
 for BranchClass in branchingMethods:
     for GenClass in generators:
         SampleMethod = GenClass(BranchClass,args.replacement)
-        samples, estimates = st.sampleTree(tree,args.sample_number,SampleMethod,args.filename,args.debug,args.seed)
-        st.sampleStats(tree.root.subtreesize,estimates,args.filename,args.bias,SampleMethod)
+        samples, estimates, stds = st.sampleTree(tree,args.sample_number,SampleMethod,args.filename,args.debug,args.seed,args.stds_not_weighted)
+        st.sampleStats(tree.root.subtreesize,estimates,stds,args.filename,args.bias,SampleMethod)
         if args.graph is not None:
-            p.plotEstimates(estimates,SampleMethod,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed)
+            p.plotEstimates(estimates,stds,SampleMethod,GenClass,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed,args.confidence_level,args.confidence_noplot)
             if args.graph >= 2:
                 if GenClass.genMethod == "online":
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,SampleMethod)

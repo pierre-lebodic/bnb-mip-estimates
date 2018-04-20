@@ -1,8 +1,14 @@
 import matplotlib.pyplot as plt
+import math
 
-def plotEstimates(estimates,SampleMethod,treesize,filename,cmdstr,seed):
+def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
+    assert(confidenceLevel < 1)
     plt.figure(1)
-    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label=SampleMethod.branchType)
+    lower_ci = [estimates[i] - math.sqrt(1/(1 - confidenceLevel)) * stds[i] for i in range(len(estimates))]
+    upper_ci = [estimates[i] + math.sqrt(1/(1 - confidenceLevel)) * stds[i] for i in range(len(estimates))]
+    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label="%s %s"%(SampleMethod.branchType,GenClass.genMethod))
+    if( noplot == 0 ):
+        plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4, label = "$Conf. %2.2f $"% (confidenceLevel) )
     plt.xlabel('$k$',fontsize=18)
     plt.ylabel('$E_k$',fontsize=18)
     plt.title("{}".format(filename.rsplit('/',1)[-1]))
