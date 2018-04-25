@@ -31,7 +31,13 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             debugProbs.write(str(sample.totalPhi)+"\n")
             debugTotal.write(str(sampleEstimates[-1])+"\n")
     stds = calculateStds(sampleSet,notWeighted)
+    writeTotal(sampleEstimates,filename,SampleMethod)
     return (sampleSet,sampleEstimates,stds)
+
+def writeTotal(estimates,filename,SampleMethod):
+    with open("%s.%s.%s.total" % (filename,SampleMethod.branchType,SampleMethod.genMethod), "w") as currfile:
+        for estimate in estimates:
+            currfile.write("{}\n".format(estimate))
 
 def sampleStats(treesize,estimates,stds,filename,bias,SampleMethod):
     average = estimates[-1]
@@ -47,7 +53,6 @@ def calculateStds(sampleSet,notWeighted):
     mean = 0
     prevmean = 0
     Sn = 0
-    i=0
     for sample in sampleSet:
         weightSum += sample.totalPhi
         prevmean = mean
