@@ -19,7 +19,6 @@ class TreeAnalyzer():
         #y will store the size of the subtree at that node
         self.y = np.zeros(self.ninnernodes)
         self.analyzetree()
-        print(self.X)
 
     #we do a raversal of the tree and collect labels and features in y and X
     def analyzetree(self):
@@ -28,9 +27,6 @@ class TreeAnalyzer():
         for node in self.root:
             #we do not take leaves as data points
             if node.isLeaf() is False:
-                print(nodeindex)
-                print(node.children[0])
-                print(node.children[1])
                 self.y[nodeindex] = self.label(node)
                 #we collect each feature
                 for i, f in enumerate(self.features):
