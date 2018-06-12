@@ -97,6 +97,7 @@ if not args.method == 2:
 
 if args.analyze is True:
     treeanalyzer = at.TreeAnalyzer(tree)
+    treeanalyzer.linearregression()
 
 generators = []
 if args.tree_based:
