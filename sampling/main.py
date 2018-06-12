@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+import analyzetree as at
 import readtree as rt
 import sampletree as st
 import branchclasses as bc
@@ -9,6 +10,8 @@ import plot as p
 
 parser = argparse.ArgumentParser()
 source = parser.add_mutually_exclusive_group(required=True)
+#parser.add_argument("-l","--learn",help="learns a function with estimates the size of subtrees, as a function of the gap left to close at their root (and other things)",action="store_true")
+parser.add_argument("-a","--analyze",help="analyzes the size of subtrees as a function of the gap and depth of the root",action="store_true")
 parser.add_argument("-r","--replacement",help="samples tree with replacement",action="store_true")
 parser.add_argument("-D","--debug",help="outputs debug files",action="store_true")
 parser.add_argument("-g","--graph",help="outputs graphs",action="count")
@@ -91,6 +94,9 @@ if args.test_phi:
 branchingMethods = [bc.BiasedPhi,bc.Evenly]
 if not args.method == 2:
     branchingMethods = [branchingMethods[args.method]]
+
+if args.analyze is True:
+    treeanalyzer = at.TreeAnalyzer(tree)
 
 generators = []
 if args.tree_based:
