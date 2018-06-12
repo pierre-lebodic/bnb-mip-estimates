@@ -29,9 +29,9 @@ class TreeAnalyzer():
         self.regressions = []
         self.regressions.append(linear_model.LinearRegression)
         self.regressions.append(svm.SVR)
-#        self.regressions.append(neural_network.MLPRegressor)
-#        self.regressions.append(neighbors.KNeighborsRegressor)
-#        self.regressions.append(neighbors.RadiusNeighborsRegressor)
+        self.regressions.append(neural_network.MLPRegressor)
+        self.regressions.append(neighbors.KNeighborsRegressor)
+        self.regressions.append(neighbors.RadiusNeighborsRegressor)
 
         self.root = tree.root
         assert(self.root is not None)
@@ -94,6 +94,11 @@ class TreeAnalyzer():
                 regr.fit(X_train, y_train[:, yi])
                 # Make predictions using the testing set
                 y_pred = regr.predict(X_test)
+                max_y_pred = np.nanmax(y_pred)
+                #we fix possible infinite values in y_pred
+                for i, val in enumerate(y_pred):
+                    if np.isnan(val) or not np.isfinite(val):
+                        y_pred[i] = max_y_pred
                 # The coefficients
 #               print('Coefficients: \n', regr.coef_)
                 # The mean squared error
