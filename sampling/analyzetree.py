@@ -1,7 +1,10 @@
 import math
 import numpy as np
+
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
+
+from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 
 import treenode as tn
@@ -9,8 +12,8 @@ import treenode as tn
 class TreeAnalyzer():
 
     def __init__(self, tree):
-        #self.features = [tn.TreeNode.getLpValue, tn.TreeNode.getDepth]
-        self.features = [tn.TreeNode.getLpValue]
+        self.features = [tn.TreeNode.getLpValue, tn.TreeNode.getDepth]
+        #self.features = [tn.TreeNode.getLpValue]
         self.nfeatures = len(self.features)
         #self.labels = [tn.TreeNode.getSubTreeSize, loglabel(tn.TreeNode.getSubTreeSize)]  
         #self.labels = [tn.TreeNode.getSubTreeSize]  
@@ -41,6 +44,15 @@ class TreeAnalyzer():
                 nodeindex += 1
         assert nodeindex == self.ninnernodes, "nodeindex = {}, self.ninnernodes = {}"\
             .format(nodeindex, self.ninnernodes)
+
+    def plotdata(self):
+        if self.nfeatures == 1:
+            plt.scatter(self.X[:, 0], self.y[:,0], cmap='Greens')
+        else: 
+            ax = plt.axes(projection='3d')
+            ax.scatter3D(self.X[:, 0], self.X[:, 1], self.y[:,0], cmap='Greens')
+            #plt.scatter(self.X[:, 0], self.y[:,0], c = self.X[:, 1])
+        plt.show()
 
     def linearregression(self):
         regr = linear_model.LinearRegression()
