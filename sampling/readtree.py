@@ -47,7 +47,6 @@ def readTree(filename,zeroPhi):
             ### NODE INFEASIBLE OR FATHOMED ###
             num = int(buf[1])
             cnode = nodes[num]
-            cnode.leaf = True
             cnode.parent.markReady(nodesSeen)
             if cnode.lpValue >= 1e+20:
                 if cnode.children != []: # tricky bug where an inner node is pruned and upper bounds change

@@ -18,7 +18,7 @@ class TreeNode:
         self.probsum = 1 # used for sampling without replacement
         self.ready = False # used in  "online" sampling
         self.online = 1e+20
-        self.leaf = False
+        self.leaf = True
 
     def __iter__(self):
         yield self
@@ -27,6 +27,7 @@ class TreeNode:
                 yield node
 
     def addChild(self, child):
+        self.leaf = False
         self.children.append(child)
         self.children[-1].leftorright = len(self.children)-1
 
@@ -148,6 +149,9 @@ class TreeNode:
         else:
             self.children[0].genLeaves(leafList)
             self.children[1].genLeaves(leafList)
+
+    def isLeaf(self):
+        return (len(self.children) == 0)
 
     def getLpValue(self):
         return self.lpValue
