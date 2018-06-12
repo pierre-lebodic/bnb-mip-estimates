@@ -149,6 +149,15 @@ class TreeNode:
             self.children[0].genLeaves(leafList)
             self.children[1].genLeaves(leafList)
 
+    def getLpValue(self):
+        return self.lpValue
+
+    def getDepth(self):
+        return self.depth
+
+    def getSubTreeSize(self):
+        return self.subtreesize
+
 class Tree:
 
     def __init__(self,root):
