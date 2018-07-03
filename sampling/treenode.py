@@ -3,7 +3,7 @@ from math import sqrt
 class TreeNode:
 
     def __init__(self, num, parent):
-        self.num = num
+        self.num = num #number in which the node appears in vbc file (root -> 0)
         self.parent = parent
         self.subtreesize = None
         self.leftorright = None # Is this node the left or right child of its parent? 0 for left, 1 for right

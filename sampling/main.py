@@ -5,6 +5,7 @@ import readtree as rt
 import sampletree as st
 import branchclasses as bc
 import samplegenerators as sg
+import progressmeasure as pm
 import plot as p
 
 parser = argparse.ArgumentParser()
@@ -111,3 +112,5 @@ for BranchClass in branchingMethods:
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,SampleMethod)
                 p.plotDepths(samples,args.filename,SampleMethod)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,SampleMethod)
+        samples, progressmeasures = pm.measureProgress(tree,args.sample_number,SampleMethod, args.seed)
+        print( pm.averageForecasting(samples, progressmeasures, [i+1 for i, _ in enumerate(samples)]) )
