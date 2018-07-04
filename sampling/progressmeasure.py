@@ -1,4 +1,4 @@
-import numpy as np
+import math
 
 def measureProgress(tree,samplenum,SampleMethod,seed):
     assert SampleMethod.withReplacement == False
@@ -35,8 +35,10 @@ def averageForecasting(sampleSet, progressmeasures, accresourcemeasure):
        assert progress > 0
        assert progress <= 1
        assert accprogress > 0
-       assert accprogress <= 1
        assert accresource > 0
+       if math.isclose(accprogress, 1) and accprogress > 1:
+           accprogress = 1
+       assert accprogress <= 1, "found accproress = {}".format(accprogress)
        #we compute the ratio progress/resource so far:
        progressresourceratio =  accprogress/accresource
        #the remaining progress:
