@@ -113,4 +113,4 @@ for BranchClass in branchingMethods:
                 p.plotDepths(samples,args.filename,SampleMethod)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,SampleMethod)
         samples, progressmeasures = pm.measureProgress(tree,args.sample_number,SampleMethod, args.seed)
-        print( pm.averageForecasting(samples, progressmeasures, [i+1 for i, _ in enumerate(samples)]) )
+        print( pm.rollingAverageForecasting(samples, progressmeasures, [i+1 for i, _ in enumerate(samples)], windowsize = 5) )
