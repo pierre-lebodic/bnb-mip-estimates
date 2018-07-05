@@ -2,13 +2,21 @@ import random as rand
 
 class GenericSG:
 
-    def __init__(self,BranchClass,withReplacement):
+    def __init__(self,BranchClass,withReplacement,progressmeasure=None,forecast=None):
         self.withReplacement = withReplacement
         self.branch = BranchClass
         self.graphShape = self.branch.graphShape
         self.phiBased = self.branch.phiBased
         self.branchType = self.branch.btype
+        self.progressmeasure = progressmeasure #if/how to build a progress measure
+        self.forecast = forecast #whether to add a time-series forecasting technique
 
+    def __str__(self):
+        name = "{} {}".format(self.branchType,self.genMethod)
+        for info in [self.forecast, self.progressmeasure]:
+            if info is not None:
+                name+=" {}".format(info)
+        return name
 
 class OnlineBasedSG(GenericSG):
 

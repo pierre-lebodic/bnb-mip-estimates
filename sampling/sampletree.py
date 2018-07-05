@@ -1,6 +1,8 @@
 import plot as p
 import math
 
+import progressmeasure as pm
+
 def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
     print("Sampling tree...")
     if SampleMethod.genMethod == "uniform":
@@ -9,6 +11,8 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
         samplegen = SampleMethod.generator(tree,samplenum)
     sampleSet = []
     sampleEstimates = []
+    accprogressmeasures = [0]
+    accresourcemeasures = [0]
     if debug:
         debugEst = open("{}.{}.{}.est".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
         debugProbs = open("{}.{}.{}.probs".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
@@ -19,7 +23,12 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
     for sample in samplegen:
         sampleCount += 1
         sampleSet.append(sample)
-        if SampleMethod.withReplacement:
+        if SampleMethod.progressmeasure == "totalphi":
+            accprogressmeasures.append(min(1,accprogressmeasures[-1] + sample.totalPhi))
+            accresourcemeasures.append(2*sampleCount - 1)
+            #accresourcemeasures.append(sample.num)
+            sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, 5000))
+        elif SampleMethod.withReplacement:
             averageAcc += sample.totalSize
             sampleEstimates.append(averageAcc/sampleCount)
         else:
@@ -41,7 +50,7 @@ def writeTotal(estimates,filename,SampleMethod):
 
 def sampleStats(treesize,estimates,stds,filename,bias,SampleMethod):
     average = estimates[-1]
-    print("{} - {}".format(SampleMethod.branchType,SampleMethod.genMethod))
+    print(SampleMethod)
     print("Average sample:",average,sep='\t\t')
     print("Confidence margin:",stds[-1].real,sep='\t')
     print("Actual size:",treesize,sep='\t\t')

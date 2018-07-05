@@ -1,5 +1,6 @@
 import argparse
 import sys
+import copy
 
 import readtree as rt
 import sampletree as st
@@ -16,6 +17,7 @@ parser.add_argument("-g","--graph",help="outputs graphs",action="count")
 parser.add_argument("-t","--tree_based",help="finds sample based on tree traversal",action="store_true")
 parser.add_argument("-o","--online",help="finds samples in the order SCIP finds them",action="store_true")
 parser.add_argument("-u","--uniform",help="leaves sampled uniformly",action="store_true")
+parser.add_argument("-w","--window",help="use a rolling window",action="store_true")
 parser.add_argument("-z","--zero_phi",type=float,default=0.9,help="dictates phi value at 0 gain nodes")
 parser.add_argument("-p","--test_phi",help="dumps phi/real ratio values into a file",action="store_true")
 parser.add_argument("--method",type=int,choices=[0,1,2],default=0,help="0 - Biased Phi; 1 - Even; 2 - All")
@@ -100,17 +102,34 @@ if args.online:
     generators.append(sg.OnlineBasedSG)
 if args.uniform:
     generators.append(sg.UniformSG)
+
+#we generate the set of methods to use:
+methods = []
 for BranchClass in branchingMethods:
     for GenClass in generators:
-        SampleMethod = GenClass(BranchClass,args.replacement)
-        samples, estimates, stds = st.sampleTree(tree,args.sample_number,SampleMethod,args.filename,args.debug,args.seed,args.stds_not_weighted)
-        st.sampleStats(tree.root.subtreesize,estimates,stds,args.filename,args.bias,SampleMethod)
+        methods.append(GenClass(BranchClass,args.replacement))
+#we generate possible modifiers to these methods:
+addmethods = []
+if args.window:
+    for oldmethod in methods:
+        newmethod = copy.copy(oldmethod)
+        newmethod.forecast = "window"
+        newmethod.progressmeasure = "totalphi"
+        newmethod.colour = 'o'
+        addmethods.append(newmethod)
+methods.extend(addmethods)
+
+for method in generators:
+    print(method)
+
+for method in methods:
+        samples, estimates, stds = st.sampleTree(tree,args.sample_number,method,args.filename,args.debug,args.seed,args.stds_not_weighted)
+
+        st.sampleStats(tree.root.subtreesize,estimates,stds,args.filename,args.bias,method)
         if args.graph is not None:
-            p.plotEstimates(estimates,stds,SampleMethod,GenClass,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed,args.confidence_level,args.confidence_noplot)
+            p.plotEstimates(estimates,stds,method,GenClass,tree.root.subtreesize,args.filename,sys.argv[1][1:],args.seed,args.confidence_level,args.confidence_noplot)
             if args.graph >= 2:
-                if GenClass.genMethod == "online":
-                    p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,SampleMethod)
-                p.plotDepths(samples,args.filename,SampleMethod)
-                p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,SampleMethod)
-        samples, progressmeasures = pm.measureProgress(tree,args.sample_number,SampleMethod, args.seed)
-        print( pm.rollingAverageForecasting(samples, progressmeasures, [i+1 for i, _ in enumerate(samples)], windowsize = 5) )
+                if method.genMethod == "online":
+                    p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,method)
+                p.plotDepths(samples,args.filename,method)
+                p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,method)
