@@ -61,20 +61,32 @@ class TreeBasedSG(GenericSG):
     colour = "b"
     genMethod = "treebased"
 
-    def generator(self,tree,samplenum):
+    def generator(self,tree,samplenum,seed):
+        rand.seed(seed)
         tree.root.cascadePhi(self.phiBased)
+        tree.root.unKillAll()
+
         for z in range(samplenum):
-            if tree.root.probsum <= 0:
+            if tree.root.dead:
                 print(">Entire tree has been sampled: halting after",z,"samples.")
                 break
             currentnode = tree.root
             num = tree.root.probsum * rand.random()
             while currentnode.children != []:
-                if self.branch.branch(currentnode,num):
+                # there must be at least one path not yet taken
+                assert not (currentnode.children[0].dead and currentnode.children[1].dead)
+
+                # right branch
+                if currentnode.children[0].dead or self.branch.branch(currentnode,num):
                     nextchild = 1
                     num -= currentnode.children[0].probsum
+                # left branch
                 else:
                     nextchild = 0
                 currentnode = currentnode.children[nextchild]
             self.branch.processLeaf(self.withReplacement,currentnode)
+
+            # kill the node (and probably its parents and ancestors) if we do not draw with replacement
+            if not self.withReplacement:
+                currentnode.killNode()
             yield currentnode
