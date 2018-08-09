@@ -25,6 +25,7 @@ parser.add_argument("--method",type=int,choices=[0,1,2],default=0,help="0 - Bias
 parser.add_argument("--bias",type=int,default=0,help="bias the relative error values")
 parser.add_argument("--seed",type=str,default=0,help="seed for shuffling of uniform leaf list")
 parser.add_argument("--windowsize",type=int,default=None,help="the size of the rolling window")
+parser.add_argument("--windowacc", help="compute acceleration in the window", action = "store_true")
 parser.add_argument("--alpha",type=float,default=0.1,help="the smoothing coefficient for (doubly) exp smoothing")
 parser.add_argument("--beta",type=float,default=0.1,help="the trend smoothing coefficient for doubly exp smoothing")
 parser.add_argument("sample_number",type=int,help="number of samples")
@@ -120,6 +121,7 @@ if args.window:
         newmethod.forecast = "window"
         newmethod.progressmeasure = "totalphi"
         newmethod.windowsize = args.windowsize
+        newmethod.withacceleration = args.windowacc
         newmethod.colour = 'o'
         addmethods.append(newmethod)
 if args.expsmoothing:

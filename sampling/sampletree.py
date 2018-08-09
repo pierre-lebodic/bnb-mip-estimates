@@ -32,7 +32,7 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             resourcemeasures.append(accresourcemeasures[-2] - accresourcemeasures[-1])
             #accresourcemeasures.append(sample.num)
             if SampleMethod.forecast == "window":
-                sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, SampleMethod.windowsize))
+                sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, SampleMethod.windowsize, SampleMethod.withacceleration))
             if SampleMethod.forecast == "expsmoothing":
                sampleEstimates.append(pm.doubleExponentialSmoothing(accprogressmeasures, accresourcemeasures, SampleMethod.alpha, SampleMethod.beta))
 

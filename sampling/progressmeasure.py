@@ -37,9 +37,9 @@ def doubleExponentialSmoothing(accprogressmeasures, accresourcemeasures, alpha, 
         return newb         
 
     #progress per data point
-    progressvelocity = expsmooth(accprogressmeasures,alpha, beta) 
+    progressvelocity = brown(accprogressmeasures,alpha, beta) 
     #resource per data point
-    resourcevelocity = expsmooth(accresourcemeasures,alpha, beta) 
+    resourcevelocity = brown(accresourcemeasures,alpha, beta) 
 
     #we determine how many more data points would be needed given the progress velocity
     m = (1 - accprogressmeasures[-1]) / progressvelocity
@@ -57,42 +57,69 @@ def doubleExponentialSmoothing(accprogressmeasures, accresourcemeasures, alpha, 
 #function of resources used in a window of given size.
 #Then, supposing that this velocity remains constant, we estimate the amount of
 #resources required to reach a progress measure of 1.
-def rollingAverageForecasting(accprogressmeasures, accresourcemeasures, windowsize):
+def rollingAverageForecasting(accprogressmeasures, accresourcemeasures, maxwindowsize, withacceleration = True):
     assert accresourcemeasures[0] == 0
 
-    if windowsize == None:
-        windowsize = math.inf
-    assert windowsize >= 1
+    if maxwindowsize == None:
+        maxwindowsize = math.inf
+    assert maxwindowsize >= 1
     assert len(accresourcemeasures) == len(accprogressmeasures)
     assert accresourcemeasures[0] == 0
     assert accprogressmeasures[0] == 0
 
     #we compute the size of the window:
     windowend = len(accprogressmeasures) - 1 #the last measure in the window
-    windowstart = max(0, windowend - windowsize) #the first measure in the window
+    windowstart = max(0, windowend - maxwindowsize) #the first measure in the window
     assert windowstart < windowend
+    windowmid = (windowend - windowstart)// 2
+    if windowmid == windowstart or windowmid == windowend:
+        withacceleration = False
 
     #we compute the accumulated progress measure in the window
-    accprogress = accprogressmeasures[windowend] - accprogressmeasures[windowstart]
-    if math.isclose(accprogress, 1) and accprogress > 1:
-        accprogress = 1
-    assert accprogress <= 1, "found accproress = {} - {} = {}".format(accprogressmeasures[windowend], accprogressmeasures[windowstart], accprogress)
+    def measurevelocity(accprogressmeasures, accresourcemeasures, start, end):
+        accprogress = accprogressmeasures[end] - accprogressmeasures[start]
+        if math.isclose(accprogress, 1) and accprogress > 1:
+            accprogress = 1
+        assert accprogress <= 1, "found accproress = {} - {} = {}".format(accprogressmeasures[end], accprogressmeasures[start], accprogress)
 
-    accresource = accresourcemeasures[windowend] - accresourcemeasures[windowstart]
+        accresource = accresourcemeasures[end] - accresourcemeasures[start]
+        #we compute the ratio progress/resource (=velocity) in the window:
+        progressresourceratio =  accprogress/accresource
+        #print( "{} = {}/ {}".format(progressresourceratio, accprogress, accresource))
+        assert progressresourceratio > 0
+        return progressresourceratio
 
-    #we compute the ratio progress/resource (=velocity) in the window:
-    progressresourceratio =  accprogress/accresource
-    #print( "{} = {}/ {}".format(progressresourceratio, accprogress, accresource))
-    assert progressresourceratio > 0
     #the remaining progress:
     remprogress = max(0,1 - accprogressmeasures[windowend])
-    #the estimated remaining resources:
     assert remprogress >= 0
     assert remprogress <= 1
-    remresource = remprogress / progressresourceratio
-    #the estimated total resources:
-    totalresources = accresourcemeasures[windowend] + remresource
+
+    totalresources = 0
+
+    if withacceleration is True:
+        velocityfirsthalf = measurevelocity(accprogressmeasures, accresourcemeasures, windowstart, windowmid)
+        velocitysecondhalf = measurevelocity(accprogressmeasures, accresourcemeasures, windowmid, windowend)
+        #the acceleration is the difference in speed between the (end of) the first half window and the (end of) the second half window
+        acceleration = (velocitysecondhalf - velocityfirsthalf)/(accresourcemeasures[windowend]-accresourcemeasures[windowmid])
+        #the estimated remaining resources:
+        discriminant = velocitysecondhalf**2 + 2*acceleration*(remprogress)
+        #if the search is really slowing down, it's possible that acceleration is so negative that
+        #the discriminant is negative. Then we set it to 0.
+        discriminant = max(0, discriminant)
+        rootdiscriminant = math.sqrt(discriminant)
+        remresource1 = (- velocitysecondhalf + rootdiscriminant) / acceleration
+        remresource2 = (- velocitysecondhalf - rootdiscriminant) / acceleration
+        #one of the two roots is negative
+        remresource = max(remresource1, remresource2)
+        assert(remresource > 0)
+        #the estimated total resources:
+        totalresources = accresourcemeasures[windowend] + remresource
+    else:
+        velocitywindow = measurevelocity(accprogressmeasures, accresourcemeasures, windowstart, windowend)
+        #the estimated remaining resources:
+        remresource = remprogress / velocitywindow
+        #the estimated total resources:
+        totalresources = accresourcemeasures[windowend] + remresource
         
-    #print(totalresources)
     return totalresources
     
