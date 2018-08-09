@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 source = parser.add_mutually_exclusive_group(required=True)
 parser.add_argument("-r","--replacement",help="samples tree with replacement",action="store_true")
 parser.add_argument("-D","--debug",help="outputs debug files",action="store_true")
+parser.add_argument("-e","--expsmoothing",help="use doubly exponential smoothing",action="store_true")
 parser.add_argument("-g","--graph",help="outputs graphs",action="count")
 parser.add_argument("-t","--tree_based",help="finds sample based on tree traversal",action="store_true")
 parser.add_argument("-o","--online",help="finds samples in the order SCIP finds them",action="store_true")
@@ -25,6 +26,10 @@ parser.add_argument("-p","--test_phi",help="dumps phi/real ratio values into a f
 parser.add_argument("--method",type=int,choices=[0,1,2],default=0,help="0 - Biased Phi; 1 - Even; 2 - All")
 parser.add_argument("--bias",type=int,default=0,help="bias the relative error values")
 parser.add_argument("--seed",type=str,default=0,help="seed for shuffling of uniform leaf list")
+parser.add_argument("--windowsize",type=int,default=None,help="the size of the rolling window")
+parser.add_argument("--windowacc", help="compute acceleration in the window", action = "store_true")
+parser.add_argument("--alpha",type=float,default=0.1,help="the smoothing coefficient for (doubly) exp smoothing")
+parser.add_argument("--beta",type=float,default=0.1,help="the trend smoothing coefficient for doubly exp smoothing")
 parser.add_argument("sample_number",type=int,help="number of samples")
 parser.add_argument("--confidence-level",type=float,dest="confidence_level",default=0.90,help="How strong should the confidence level of the confidence interval be? Values between 0 and 1")
 parser.add_argument("--confidence-noplot",dest="confidence_noplot",help="Should the confidence interval be hidden in the plot?",action="store_true")
@@ -44,7 +49,7 @@ elif not args.mvb is None:
     f = open(args.mvb[0])
     variables = []
     for line in f:
-        l,r,_ = map(int,line.split()) # mvb can take gvb inputs: the lim value is discarded into _
+        l,r,*_ = map(int,line.split()) # mvb can take gvb inputs: the lim value is discarded into *_
         variables.append((l,r))
     args.filename = "mvb_{}_{}".format(args.mvb[0].rsplit('/',1)[-1],gap)
     tree = rt.readMVBTree(gap,variables)
@@ -119,8 +124,20 @@ if args.window:
         newmethod = copy.copy(oldmethod)
         newmethod.forecast = "window"
         newmethod.progressmeasure = "totalphi"
+        newmethod.windowsize = args.windowsize
+        newmethod.withacceleration = args.windowacc
         newmethod.colour = 'k'
         addmethods.append(newmethod)
+if args.expsmoothing:
+    for oldmethod in methods:
+        newmethod = copy.copy(oldmethod)
+        newmethod.forecast = "expsmoothing"
+        newmethod.progressmeasure = "totalphi"
+        newmethod.alpha = args.alpha
+        newmethod.beta = args.beta
+        newmethod.colour = 'y'
+        addmethods.append(newmethod)
+
 methods.extend(addmethods)
 
 for method in generators:

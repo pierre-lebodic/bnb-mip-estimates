@@ -11,6 +11,8 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
         samplegen = SampleMethod.generator(tree,samplenum)
     sampleSet = []
     sampleEstimates = []
+    progressmeasures = []
+    resourcemeasures = []
     accprogressmeasures = [0]
     accresourcemeasures = [0]
     if debug:
@@ -24,10 +26,16 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
         sampleCount += 1
         sampleSet.append(sample)
         if SampleMethod.progressmeasure == "totalphi":
+            progressmeasures.append(sample.totalPhi)
             accprogressmeasures.append(min(1,accprogressmeasures[-1] + sample.totalPhi))
             accresourcemeasures.append(2*sampleCount - 1)
+            resourcemeasures.append(accresourcemeasures[-2] - accresourcemeasures[-1])
             #accresourcemeasures.append(sample.num)
-            sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, 5000))
+            if SampleMethod.forecast == "window":
+                sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, SampleMethod.windowsize, SampleMethod.withacceleration))
+            if SampleMethod.forecast == "expsmoothing":
+               sampleEstimates.append(pm.doubleExponentialSmoothing(accprogressmeasures, accresourcemeasures, SampleMethod.alpha, SampleMethod.beta))
+
         elif SampleMethod.withReplacement:
             averageAcc += sample.totalSize
             sampleEstimates.append(averageAcc/sampleCount)
