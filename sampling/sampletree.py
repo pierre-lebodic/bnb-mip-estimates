@@ -5,7 +5,7 @@ import progressmeasure as pm
 
 def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
     print("Sampling tree...")
-    if SampleMethod.genMethod == "uniform":
+    if SampleMethod.genMethod in ["uniform", "treebased"]:
         samplegen = SampleMethod.generator(tree,samplenum,seed)
     else:
         samplegen = SampleMethod.generator(tree,samplenum)

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import math
+from operator import itemgetter
 
 def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
     assert(confidenceLevel < 1)
@@ -30,6 +31,26 @@ def plotDepths(samples,filename,SampleMethod):
     plt.title('Depth of leaves')
     plt.savefig("{}.{}.{}.d.png".format(filename,SampleMethod.branchType,SampleMethod.genMethod))
     plt.close()
+
+def plotTreeProfile(samples, filename, SampleMethod,sampleNumModelTree=None):
+    """plots a tree profile based on the samples, i.e., a histogram per depth.
+    """
+    nodeseen = set()
+    depth2count = {}
+    # collect nodes by assuming that node selection goes immediately down to a leaf/sample
+    print("New Call of plot tree profile")
+    print("Sample num difference: {}".format(samples[0].num - samples[-1].num))
+    for s in samples:
+        assert s.children == []
+        assert s not in nodeseen, "s has the number {}".format(s.num)
+        parent = s
+        while parent.depth is not None and parent not in nodeseen:
+            nodeseen.add(parent)
+            depth2count[parent.depth] = depth2count.get(parent.depth, 0) + 1
+            parent = parent.parent
+
+
+
 
 
 def plotSingleEstimates(samples,treesize,filename,SampleMethod):

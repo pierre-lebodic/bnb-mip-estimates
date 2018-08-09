@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import sys
 import copy
@@ -42,7 +44,7 @@ elif not args.mvb is None:
     f = open(args.mvb[0])
     variables = []
     for line in f:
-        l,r,*_ = map(int,line.split()) # mvb can take gvb inputs: the lim value is discarded into *_
+        l,r,_ = map(int,line.split()) # mvb can take gvb inputs: the lim value is discarded into _
         variables.append((l,r))
     args.filename = "mvb_{}_{}".format(args.mvb[0].rsplit('/',1)[-1],gap)
     tree = rt.readMVBTree(gap,variables)
@@ -59,6 +61,8 @@ elif not args.gvb is None:
 
 else:
     tree = rt.readTree(args.filename,args.zero_phi)
+    # Checking tree
+    print("Checking tree: {}".format(tree.check()))
     args.filename = args.filename.rsplit('.',1)[0] # strip .abc
 
 if args.test_phi:
@@ -115,7 +119,7 @@ if args.window:
         newmethod = copy.copy(oldmethod)
         newmethod.forecast = "window"
         newmethod.progressmeasure = "totalphi"
-        newmethod.colour = 'o'
+        newmethod.colour = 'k'
         addmethods.append(newmethod)
 methods.extend(addmethods)
 
@@ -133,3 +137,4 @@ for method in methods:
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,method)
                 p.plotDepths(samples,args.filename,method)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,method)
+                p.plotTreeProfile(samples, args.filename, method)
