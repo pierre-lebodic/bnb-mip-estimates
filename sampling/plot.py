@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import math
+from operator import itemgetter
 
 def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
     assert(confidenceLevel < 1)
@@ -30,6 +31,92 @@ def plotDepths(samples,filename,SampleMethod):
     plt.title('Depth of leaves')
     plt.savefig("{}.{}.{}.d.png".format(filename,SampleMethod.branchType,SampleMethod.genMethod))
     plt.close()
+
+
+def getModelTreeDataFromProfile(depth2count : dict) -> dict:
+    """computes relevant model tree data from a depth count map.
+    """
+    depthProfiles = sorted(depth2count.items(), key = itemgetter(0))
+    lastfulldepth = minwaistdepth = maxwaistdepth = 0
+    maxdepth = depthProfiles[-1][0]
+
+    maxcount = 0
+    for depth, count in depthProfiles:
+        if count == 2 ** depth:
+            lastfulldepth = depth
+
+        if count > maxcount:
+             minwaistdepth = maxwaistdepth = depth
+             maxcount = count
+        elif count == maxcount:
+            maxwaistdepth = depth
+
+    avgwaist = (minwaistdepth + maxwaistdepth) / 2.0
+    gamma_prod = 2
+
+    modelTreeWidths = []
+    modelTreeWidths.append(1)
+    estimation = 1
+    for i in range(1, maxdepth + 1):
+        estimation += gamma_prod
+        modelTreeWidths.append(gamma_prod)
+        if i < lastfulldepth:
+            gamma = 2
+        elif i < avgwaist:
+            gamma = 2.0 - (i - lastfulldepth + 1.0)/(avgwaist - lastfulldepth + 1.0)
+        else:
+            gamma = 1.0 - (i - avgwaist + 1.0)/(maxdepth - avgwaist + 1.0)
+
+        gamma_prod *= gamma
+
+    return {
+        "widths" : modelTreeWidths,
+        "lastfulldepth" : lastfulldepth,
+        "minwaistdepth" : minwaistdepth,
+        "maxwaistdepth" : maxwaistdepth,
+        "maxdepth"      : maxdepth,
+        "estimation"    : estimation
+    }
+
+def plotTreeProfile(samples, filename, SampleMethod,sampleNumModelTree=-1):
+    """plots a tree profile based on the samples, i.e., a histogram per depth.
+    """
+    nodeseen = set()
+    depth2count = {}
+    # collect nodes by assuming that node selection goes immediately down to a leaf/sample
+    sampleNumModelTree = min(len(samples), sampleNumModelTree)
+    if sampleNumModelTree == -1:
+        modelTreeData = None
+
+    for idx,s in enumerate(samples):
+        assert s.children == []
+        assert s not in nodeseen, "s has the number {}".format(s.num)
+        parent = s
+        while parent.depth is not None and parent not in nodeseen:
+            nodeseen.add(parent)
+            depth2count[parent.depth] = depth2count.get(parent.depth, 0) + 1
+            parent = parent.parent
+
+        if sampleNumModelTree == idx + 1:
+            modelTreeData = getModelTreeDataFromProfile(depth2count)
+
+    depths, counts = zip(*sorted(depth2count.items(), key=itemgetter(0)))
+    plt.figure(2, figsize=(10,7))
+    plt.plot(depths, counts, label = "samples")
+    plt.title("Tree profile")
+    plt.xlabel('Depth')
+    plt.ylabel('Width of Tree')
+    if modelTreeData is not None:
+        widths =  modelTreeData["widths"]
+        plt.plot(range(len(widths)), widths, label = "model tree({} samples)".format(sampleNumModelTree), linestyle='dashed')
+        print("Tree Profile estimation ({} samples):".format(sampleNumModelTree))
+        print("%-23s %g" %("Estimation:", modelTreeData["estimation"]))
+
+    plt.legend(loc=2)
+    plt.savefig("{}.profile.png".format(filename))
+    plt.close()
+
+
 
 
 def plotSingleEstimates(samples,treesize,filename,SampleMethod):

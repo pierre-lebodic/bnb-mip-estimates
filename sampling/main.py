@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import sys
 import copy
@@ -23,7 +25,9 @@ parser.add_argument("-z","--zero_phi",type=float,default=0.9,help="dictates phi 
 parser.add_argument("-p","--test_phi",help="dumps phi/real ratio values into a file",action="store_true")
 parser.add_argument("--method",type=int,choices=[0,1,2],default=0,help="0 - Biased Phi; 1 - Even; 2 - All")
 parser.add_argument("--bias",type=int,default=0,help="bias the relative error values")
-parser.add_argument("--seed",type=str,default=0,help="seed for shuffling of uniform leaf list")
+parser.add_argument("--seed",type=int,default=0,help="seed for shuffling of uniform/tree based leaf list")
+parser.add_argument("-m","--modeltree-num",dest="modeltree_num",type=int,default=-1,
+                    help="number of samples to build model tree (can be smaller than sample number)")
 parser.add_argument("--windowsize",type=int,default=None,help="the size of the rolling window")
 parser.add_argument("--windowacc", help="compute acceleration in the window", action = "store_true")
 parser.add_argument("--alpha",type=float,default=0.1,help="the smoothing coefficient for (doubly) exp smoothing")
@@ -64,6 +68,8 @@ elif not args.gvb is None:
 
 else:
     tree = rt.readTree(args.filename,args.zero_phi)
+    # Checking tree
+    print("Checking tree: {}".format(tree.check()))
     args.filename = args.filename.rsplit('.',1)[0] # strip .abc
 
 if args.test_phi:
@@ -122,7 +128,7 @@ if args.window:
         newmethod.progressmeasure = "totalphi"
         newmethod.windowsize = args.windowsize
         newmethod.withacceleration = args.windowacc
-        newmethod.colour = 'o'
+        newmethod.colour = 'k'
         addmethods.append(newmethod)
 if args.expsmoothing:
     for oldmethod in methods:
@@ -150,3 +156,4 @@ for method in methods:
                     p.plotSeenNodes(samples,tree.root.subtreesize,args.filename,method)
                 p.plotDepths(samples,args.filename,method)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,method)
+                p.plotTreeProfile(samples, args.filename, method, args.modeltree_num)

@@ -149,6 +149,23 @@ class TreeNode:
             self.children[0].genLeaves(leafList)
             self.children[1].genLeaves(leafList)
 
+    def checkNode(self):
+        if self.depth > 0:
+            # every non root node must have a parent
+            if self.parent is None:
+                return False
+            if self.parent.children == []:
+                return False
+
+            if self.parent.children[self.leftorright] != self:
+                return False
+
+        if self.children == []:
+            return True
+        else:
+            return self.children[0].checkNode() and self.children[1].checkNode()
+
+
 class Tree:
 
     def __init__(self,root):
@@ -158,3 +175,6 @@ class Tree:
     def genLeafList(self):
         self.leafList = []
         self.root.genLeaves(self.leafList)
+
+    def check(self):
+        return self.root.checkNode()
