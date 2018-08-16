@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import math
+import sys
 from operator import itemgetter
 
 def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
@@ -32,6 +33,13 @@ def plotDepths(samples,filename,SampleMethod):
     plt.savefig("{}.{}.{}.d.png".format(filename,SampleMethod.branchType,SampleMethod.genMethod))
     plt.close()
 
+def printTreeData(depth2count : dict, s = sys.stdout):
+    depthProfiles = sorted(depth2count.items(), key = itemgetter(0))
+    s.write("Depth,Leaves,Nonleaves")
+    for depth, counts in depthProfiles:
+        s.write("\n")
+        s.write("{},{},{}".format(depth, counts[0], counts[1]))
+
 
 def getModelTreeDataFromProfile(depth2count : dict) -> dict:
     """computes relevant model tree data from a depth count map.
@@ -41,7 +49,9 @@ def getModelTreeDataFromProfile(depth2count : dict) -> dict:
     maxdepth = depthProfiles[-1][0]
 
     maxcount = 0
-    for depth, count in depthProfiles:
+    print
+    for depth, counts in depthProfiles:
+        count = sum(counts)
         if count == 2 ** depth:
             lastfulldepth = depth
 
@@ -94,15 +104,25 @@ def plotTreeProfile(samples, filename, SampleMethod,sampleNumModelTree=-1):
         parent = s
         while parent.depth is not None and parent not in nodeseen:
             nodeseen.add(parent)
-            depth2count[parent.depth] = depth2count.get(parent.depth, 0) + 1
+            leaves, nonleaves = depth2count.get(parent.depth, (0, 0))
+            if parent.children == []:
+                # node is a leaf. increase leaf counter
+                depth2count[parent.depth] = (leaves + 1, nonleaves)
+            else:
+                #node is an inner node. increase nonleaves
+                depth2count[parent.depth] = (leaves, nonleaves + 1)
+
             parent = parent.parent
 
         if sampleNumModelTree == idx + 1:
             modelTreeData = getModelTreeDataFromProfile(depth2count)
 
+        with open("{}.treedata.csv".format(filename), "w") as currfile:
+            printTreeData(depth2count, currfile)
+
     depths, counts = zip(*sorted(depth2count.items(), key=itemgetter(0)))
     plt.figure(2, figsize=(10,7))
-    plt.plot(depths, counts, label = "samples")
+    plt.plot(depths, list(map(sum, counts)), label = "samples")
     plt.title("Tree profile")
     plt.xlabel('Depth')
     plt.ylabel('Width of Tree')
