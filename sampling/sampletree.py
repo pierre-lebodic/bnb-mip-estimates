@@ -13,29 +13,44 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
     sampleEstimates = []
     progressmeasures = []
     resourcemeasures = []
-    accprogressmeasures = [0]
-    accresourcemeasures = [0]
+    
+    # Use online tree size predictions
+    if SampleMethod.forecast == "window":
+      measurer = pm.RollingAverage(SampleMethod.windowsize, SampleMethod.withacceleration)
+    elif SampleMethod.forecast == "expsmoothing":
+      measurer = pm.DoubleExponentialSmoothing("Brown", SampleMethod.alpha, SampleMethod.beta)
+    else:
+      measurer = None
+      
     if debug:
         debugEst = open("{}.{}.{}.est".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
         debugProbs = open("{}.{}.{}.probs".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
         debugTotal = open("{}.{}.{}.total".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
+    
     averageAcc = 0
     probAcc = 0
     sampleCount = 0
+    prev_accprogressmeasure = 0
+    prev_accresourcemeasure = 0
+    
     for sample in samplegen:
         sampleCount += 1
         sampleSet.append(sample)
         if SampleMethod.progressmeasure == "totalphi":
+            # Compute new measurements
             progressmeasures.append(sample.totalPhi)
-            accprogressmeasures.append(min(1,accprogressmeasures[-1] + sample.totalPhi))
-            accresourcemeasures.append(2*sampleCount - 1)
-            resourcemeasures.append(accresourcemeasures[-2] - accresourcemeasures[-1])
-            #accresourcemeasures.append(sample.num)
-            if SampleMethod.forecast == "window":
-                sampleEstimates.append(pm.rollingAverageForecasting(accprogressmeasures, accresourcemeasures, SampleMethod.windowsize, SampleMethod.withacceleration))
-            if SampleMethod.forecast == "expsmoothing":
-               sampleEstimates.append(pm.doubleExponentialSmoothing(accprogressmeasures, accresourcemeasures, SampleMethod.alpha, SampleMethod.beta))
-
+            next_accprogressmeasure = min(1, prev_accprogressmeasure + sample.totalPhi)
+            next_accresourcemeasure = 2*sampleCount - 1
+            resourcemeasures.append(prev_accresourcemeasure - next_accresourcemeasure)
+            
+            # Compute tree size based on new measurements
+            if measurer is not None:
+              sampleEstimates.append(measurer.insert(next_accprogressmeasure, next_accresourcemeasure))
+              
+            # Remember previous measurements
+            prev_accprogressmeasure = next_accprogressmeasure
+            prev_accresourcemeasure = next_accresourcemeasure
+              
         elif SampleMethod.withReplacement:
             averageAcc += sample.totalSize
             sampleEstimates.append(averageAcc/sampleCount)
