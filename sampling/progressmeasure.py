@@ -25,7 +25,7 @@ class Smoothing:
     self.s = 0
     self.b = 0
     self.n = 0
-    
+
   # Returns the smoothed velocity of the resulting sequence
   def insert(self, x):
     self.n += 1
@@ -44,26 +44,26 @@ class Smoothing:
       self.s = news
       self.b = newb
     return self.b
-      
+
 # -----------------------------------------------------------------------------
 #                           Progress measurement
-# -----------------------------------------------------------------------------      
-      
+# -----------------------------------------------------------------------------
+
 # Base class for Progress Measures
 class ProgressMeasure:
 
   # Insert a new estimate of the progress and resources used
   # and return the estimated amount of total resources required
   def insert(self, progress, resources):
-    assert False, "Not implemented"      
-      
-# Track the progress using Double Exponential Smoothing (BROWN or HOLT)  
+    assert False, "Not implemented"
+
+# Track the progress using Double Exponential Smoothing (BROWN or HOLT)
 class DoubleExponentialSmoothing(ProgressMeasure):
-  
+
   def __init__(self, method, alpha, beta):
     self.progress_smoother = Smoothing(method, alpha, beta)
     self.resource_smoother = Smoothing(method, alpha, beta)
-    
+
   def insert(self, progress, resources):
     progress_v = self.progress_smoother.insert(progress)
     resource_v = self.resource_smoother.insert(resources)
@@ -71,19 +71,19 @@ class DoubleExponentialSmoothing(ProgressMeasure):
     remresource = resource_v * m
     totalresources = remresource + resources
     return totalresources
-    
-# Track the progress using a linear estimate of the velocity of a sliding window 
+
+# Track the progress using a linear estimate of the velocity of a sliding window
 class RollingAverage(ProgressMeasure):
-  
+
   def __init__(self, maxwindowsize, useacceleration):
     if maxwindowsize == None: maxwindowsize = math.inf
     assert maxwindowsize >= 1
-    
+
     self.maxwindowsize = maxwindowsize
     self.useacceleration = useacceleration
     self.accprogressmeasures = [0]
     self.accresourcemeasures = [0]
-    
+
   #we compute the accumulated progress measure in the window
   def measurevelocity(self, start, end):
       accprogress = self.accprogressmeasures[end] - self.accprogressmeasures[start]
@@ -94,8 +94,8 @@ class RollingAverage(ProgressMeasure):
       #we compute the ratio progress/resource (=velocity) in the window:
       progressresourceratio =  accprogress/accresource
       assert progressresourceratio > 0
-      return progressresourceratio  
-    
+      return progressresourceratio
+
   def insert(self, progress, resources):
     self.accprogressmeasures.append(progress)
     self.accresourcemeasures.append(resources)
@@ -117,33 +117,47 @@ class RollingAverage(ProgressMeasure):
 
     totalresources = 0
 
+    velocitywindow = self.measurevelocity(windowstart, windowend)
     if withacceleration is True:
         velocityfirsthalf = self.measurevelocity(windowstart, windowmid)
         velocitysecondhalf = self.measurevelocity(windowmid, windowend)
         #the acceleration is the difference in speed between the (end of) the
         # first half window and the (end of) the second half window
         delta_r = self.accresourcemeasures[windowend]-self.accresourcemeasures[windowmid]
-        acceleration = (velocitysecondhalf - velocityfirsthalf)/ delta_r
+        acceleration = (velocitywindow - velocityfirsthalf)/ delta_r
+
+        #
+        # TODO After the acceleration has been computed above, the correct formula
+        #      for the velocity v (in y = y_0 + v r + a / 2 r^2) is
+        #      v = velocityfirsthalf - a / 2 (r_1 + r_2)
+        #
+        # It is not clear to me what works best for our scenario, to take the more
+        # local velocitysecondhalf, or the more correct v above.
+        #
         #the estimated remaining resources:
         discriminant = velocitysecondhalf**2 + 2*acceleration*(remprogress)
         #if the search is really slowing down, it's possible that acceleration
         # is so negative that the discriminant is negative. Then we set it to 0.
         discriminant = max(0, discriminant)
         rootdiscriminant = math.sqrt(discriminant)
-        remresource1 = (- velocitysecondhalf + rootdiscriminant) / acceleration
-        remresource2 = (- velocitysecondhalf - rootdiscriminant) / acceleration
-        #one of the two roots is negative
-        remresource = max(remresource1, remresource2)
+
+        # only if there is at least a little bit of acceleration, we solve the
+        # quadratic equation.
+        if abs(acceleration) > 1e-9:
+            remresource1 = (- velocitysecondhalf + rootdiscriminant) / acceleration
+            remresource2 = (- velocitysecondhalf - rootdiscriminant) / acceleration
+            #one of the two roots is negative
+            remresource = max(remresource1, remresource2)
+        else:
+          # no notable acceleration, we use a linear forecast
+          remresource = remprogress / velocitysecondhalf
         assert(remresource > 0)
         #the estimated total resources:
         totalresources = self.accresourcemeasures[windowend] + remresource
     else:
-        velocitywindow = self.measurevelocity(windowstart, windowend)
         #the estimated remaining resources:
         remresource = remprogress / velocitywindow
         #the estimated total resources:
         totalresources = self.accresourcemeasures[windowend] + remresource
-        
-    return totalresources
 
-  
+    return totalresources
