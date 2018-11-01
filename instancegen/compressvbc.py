@@ -4,6 +4,7 @@ def compress(filename):
     prev = ""
     f = open(filename, 'r')
     g = open(filename.rsplit('.',1)[0]+".abc",'w')
+    solvednodes = set()
     for line in f:
         buf = line.split()
         if buf[0] == '#':
@@ -39,10 +40,12 @@ def compress(filename):
             lowerBound = float(buf[2])
             g.write("L {}\n".format(lowerBound))
 
-        elif cmd == 'P' and buf[3] == '4':
+        elif cmd == 'P' and (buf[3] == '4' or buf[3] == '2'):
             ### NODE INFEASIBLE OR FATHOMED ###
             num = int(buf[2])
-            g.write("X {}\n".format(num))
+            if num not in solvednodes:
+                g.write("X {}\n".format(num))
+                solvednodes.add(num)
 
     f.close()
 
