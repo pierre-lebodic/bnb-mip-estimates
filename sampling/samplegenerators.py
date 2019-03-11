@@ -16,7 +16,10 @@ class GenericSG:
         for info in [self.forecast, self.progressmeasure]:
             if info is not None:
                 name+=" {}".format(info)
-        return name
+        return self.branchType        
+        #return name
+        #if self.forecast == "window": return "Moving window"
+        #else: return "Smoothing"
 
 class OnlineBasedSG(GenericSG):
 
@@ -26,14 +29,13 @@ class OnlineBasedSG(GenericSG):
     def generator(self,tree,samplenum):
         tree.genLeafList()
         tree.root.cascadePhi(self.phiBased)
-        tree.leafList.sort(key=(lambda x: x.online))
+        tree.leafList.sort(key=(lambda x: x.nodesVisited))  # nodesVisited should be the 'true' online order
         for z in range(samplenum):
-            if len(tree.leafList) == z:
+            if len(tree.leafList) == z or tree.leafList[z].nodesVisited > 1e+19:
                 print(">Entire tree has been sampled: halting after",z,"samples.")
                 break
             sample = tree.leafList[z]
             yield sample
-
 
 class UniformSG(GenericSG):
 

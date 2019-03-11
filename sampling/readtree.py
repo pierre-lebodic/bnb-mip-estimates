@@ -11,6 +11,8 @@ def readTree(filename,zeroPhi):
     upperBound = 1e+20
     lowerBound = None
     nodesSeen = 0
+    visited = set()
+
     print(">Reading Tree...")
     for line in f:
         buf = line.split()
@@ -24,6 +26,11 @@ def readTree(filename,zeroPhi):
             parent.addChild(tn.TreeNode(num,parent))
             nodes.append(parent.children[-1])
             nodesSeen += 1
+            nodes[-1].nodesSeen = nodesSeen
+
+            if parent.num > 0 and not parent.num in visited:
+              visited.add(parent.num)
+              parent.nodesVisited = len(visited)
 
         elif cmd == 'I':
             ### UPDATE NODE INFO ###
@@ -33,7 +40,11 @@ def readTree(filename,zeroPhi):
             cnode.addlpValue(float(buf[3]))
             cnode.addGains()
             cnode.parent.addPhi(zeroPhi)
-            cnode.parent.markReady(nodesSeen)
+            cnode.parent.markReady(nodesSeen, upperBound, lowerBound)
+            
+            if cnode.parent.num > 0 and not cnode.parent.num in visited:
+              visited.add(cnode.parent.num)
+              cnode.parent.nodesVisited = len(visited)
 
         elif cmd == 'U':
             ### NEW GLOBAL UPPER BOUND ###
@@ -49,6 +60,11 @@ def readTree(filename,zeroPhi):
             cnode = nodes[num]
             cnode.leaf = True
             cnode.parent.markReady(nodesSeen)
+            
+            if not num in visited:
+              visited.add(num)
+              cnode.nodesVisited = len(visited)
+            
             if cnode.lpValue >= 1e+20:
                 if cnode.children != []: # tricky bug where an inner node is pruned and upper bounds change
                     cnode.lpValue = cnode.children[0].lpValue
@@ -60,6 +76,9 @@ def readTree(filename,zeroPhi):
     f.close()
     tree = tn.Tree(nodes[1])
     tree.root.calcSubTreeSize()
+    tree.numNodes = nodesSeen
+    print('Total tree size (number of nodes) = {}'.format(nodesSeen))
+    print('Total nodes visited = {}'.format(len(visited)))
     return tree
 
 def readSVBTree(left,right,gap):

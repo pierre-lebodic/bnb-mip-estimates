@@ -93,7 +93,7 @@ class RollingAverage(ProgressMeasure):
       accresource = self.accresourcemeasures[end] - self.accresourcemeasures[start]
       #we compute the ratio progress/resource (=velocity) in the window:
       progressresourceratio =  accprogress/accresource
-      assert progressresourceratio > 0
+      assert progressresourceratio > 0  # crashes on 69_harp2
       return progressresourceratio
 
   def insert(self, progress, resources):
@@ -116,48 +116,52 @@ class RollingAverage(ProgressMeasure):
     assert remprogress <= 1
 
     totalresources = 0
+    r1 = self.accresourcemeasures[windowstart]
+    r2 = self.accresourcemeasures[windowmid]
+    r3 = self.accresourcemeasures[windowend]
+    
+    p1 = self.accprogressmeasures[windowstart]
+    p2 = self.accprogressmeasures[windowmid]
+    p3 = self.accprogressmeasures[windowend]
 
-    velocitywindow = self.measurevelocity(windowstart, windowend)
+    v_window = self.measurevelocity(windowstart, windowend)
     if withacceleration is True:
-        velocityfirsthalf = self.measurevelocity(windowstart, windowmid)
-        velocitysecondhalf = self.measurevelocity(windowmid, windowend)
-        #the acceleration is the difference in speed between the (end of) the
+        v1 = self.measurevelocity(windowstart, windowmid)
+        v2 = self.measurevelocity(windowmid, windowend)
+        
+        # the acceleration is the difference in speed between the (end of) the
         # first half window and the (end of) the second half window
-        delta_r = self.accresourcemeasures[windowend]-self.accresourcemeasures[windowmid]
-        acceleration = (velocitywindow - velocityfirsthalf)/ delta_r
-
-        #
-        # TODO After the acceleration has been computed above, the correct formula
-        #      for the velocity v (in y = y_0 + v r + a / 2 r^2) is
-        #      v = velocityfirsthalf - a / 2 (r_1 + r_2)
-        #
-        # It is not clear to me what works best for our scenario, to take the more
-        # local velocitysecondhalf, or the more correct v above.
-        #
+        a = 2.0 * (v_window - v1)/ (r3 - r2)
+        
+        # Velocity given acceleration
+        v = v1 - 0.5*a * (r1 + r2)
+        s0 = p1 - v * r1 - 0.5 * a * r1**2
+        
         #the estimated remaining resources:
-        discriminant = velocitysecondhalf**2 + 2*acceleration*(remprogress)
-        #if the search is really slowing down, it's possible that acceleration
-        # is so negative that the discriminant is negative. Then we set it to 0.
-        discriminant = max(0, discriminant)
+        discriminant = max(0, v**2 - 2*a*(s0 - 1.0))
         rootdiscriminant = math.sqrt(discriminant)
 
         # only if there is at least a little bit of acceleration, we solve the
         # quadratic equation.
-        if abs(acceleration) > 1e-9:
-            remresource1 = (- velocitysecondhalf + rootdiscriminant) / acceleration
-            remresource2 = (- velocitysecondhalf - rootdiscriminant) / acceleration
+        if abs(a) > 1e-9:
+            remresource1 = (- v + rootdiscriminant) / a
+            remresource2 = (- v - rootdiscriminant) / a
             #one of the two roots is negative
             remresource = max(remresource1, remresource2)
         else:
           # no notable acceleration, we use a linear forecast
-          remresource = remprogress / velocitysecondhalf
-        assert(remresource > 0)
+          remresource = remprogress / v
+          
+        # Shouldn't be negative...
+        remresource = max(0, remresource)
+        #assert(remresource > 0)
+        
         #the estimated total resources:
-        totalresources = self.accresourcemeasures[windowend] + remresource
+        totalresources = r3 + remresource
     else:
         #the estimated remaining resources:
-        remresource = remprogress / velocitywindow
+        remresource = remprogress / v_window
         #the estimated total resources:
-        totalresources = self.accresourcemeasures[windowend] + remresource
+        totalresources = r3 + remresource
 
     return totalresources

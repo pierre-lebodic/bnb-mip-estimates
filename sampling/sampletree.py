@@ -62,9 +62,18 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             debugEst.write(str(sample.totalSize)+"\n")
             debugProbs.write(str(sample.totalPhi)+"\n")
             debugTotal.write(str(sampleEstimates[-1])+"\n")
+    
+    #sampleEstimates = smooth(sampleEstimates)        
+            
     stds = calculateStds(sampleSet,notWeighted)
     writeTotal(sampleEstimates,filename,SampleMethod)
     return (sampleSet,sampleEstimates,stds)
+
+def smooth(sampleEstimates):
+  newEstimates = []
+  for i in range(len(sampleEstimates)):
+    newEstimates.append(min(sampleEstimates[max(0,i-49):i+1]))
+  return newEstimates
 
 def writeTotal(estimates,filename,SampleMethod):
     with open("%s.%s.%s.total" % (filename,SampleMethod.branchType,SampleMethod.genMethod), "w") as currfile:

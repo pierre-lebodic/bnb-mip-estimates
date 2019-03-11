@@ -36,6 +36,9 @@ parser.add_argument("sample_number",type=int,help="number of samples")
 parser.add_argument("--confidence-level",type=float,dest="confidence_level",default=0.90,help="How strong should the confidence level of the confidence interval be? Values between 0 and 1")
 parser.add_argument("--confidence-noplot",dest="confidence_noplot",help="Should the confidence interval be hidden in the plot?",action="store_true")
 parser.add_argument("--stds-not-weighted",dest="stds_not_weighted",help="Should the confidence interval not be weighted by progress of tree exploration?",action="store_true")
+parser.add_argument("--progress",dest="progress_measure",help="Plot the progress measure",action="store_true")
+parser.add_argument("--avg-error",dest="avg_error",help="Compute the average error")
+parser.add_argument("--mape",dest="mape",help="File to store mean errors for tree size estimates")
 source.add_argument("-f","--filename",help="abc file to process")
 source.add_argument("--svb",nargs=3,type=int,help="Generate an SVB tree with values [left] [right] [gap]")
 source.add_argument("--mvb",nargs=2,help="Generate an MVB tree with vars from [file] [gap]")
@@ -140,13 +143,53 @@ if args.expsmoothing:
         newmethod.colour = 'y'
         addmethods.append(newmethod)
 
-methods.extend(addmethods)
+#methods.extend(addmethods)
+methods = addmethods
 
 for method in generators:
     print(method)
 
 for method in methods:
         samples, estimates, stds = st.sampleTree(tree,args.sample_number,method,args.filename,args.debug,args.seed,args.stds_not_weighted)
+
+        # Plots a graph of the progress measures over time
+        if args.progress_measure is True:
+          progress = [0]
+          for sample in samples:
+            progress.append(progress[-1] + sample.totalPhi)
+          p.plotProgress(progress, str(method))
+
+        # Outputs information about the mean errors in the tree size estimations
+        # compared to the true number of nodes in the tree
+        if args.mape is not None and tree.numNodes:
+          error = 0.0
+          error_over = 0.0
+          error_under = 0.0
+          for i in range(100, len(estimates)):
+            error += 1.0 / (len(estimates) - 100) * abs(estimates[i] - tree.numNodes)
+            error_over += 1.0 / (len(estimates) - 100) * max(0, estimates[i] - tree.numNodes)
+            error_under += 1.0 / (len(estimates) - 100) * max(0, tree.numNodes - estimates[i])
+          print('Printing error results into {}'.format(args.mape))
+          with open(args.mape, 'a') as outfile:
+            print('{} {} {} {}'.format(tree.numNodes, error / tree.numNodes, error_over / tree.numNodes, error_under / tree.numNodes), file=outfile)
+
+        # Outputs information about the accuracy of the progress measurements
+        if args.avg_error is not None:
+          error = 0.0
+          error_over = 0.0
+          error_under = 0.0
+          progress = 0.0
+          for sample in samples:
+            progress += sample.totalPhi
+            actualProgress = min(1.0, sample.nodesVisited / tree.numNodes)
+            #print("progress: {}, actual: {}. vis = {}, total = {}".format(progress, actualProgress, sample.nodesVisited, tree.numNodes))
+            error += abs(progress - actualProgress)
+            if progress > actualProgress: error_over += progress - actualProgress
+            else: error_under += actualProgress - progress
+          error /= len(samples)
+          print("Method: {}, Average Error: {}".format(str(method), error))
+          with open(args.avg_error, 'a') as outfile:
+            print("{:d} {:f}".format(tree.numNodes, error), file=outfile)
 
         st.sampleStats(tree.root.subtreesize,estimates,stds,args.filename,args.bias,method)
         if args.graph is not None:
@@ -157,3 +200,19 @@ for method in methods:
                 p.plotDepths(samples,args.filename,method)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,method)
                 p.plotTreeProfile(samples, args.filename, method, args.modeltree_num)
+            
+# Plot additional progress measures
+if args.progress_measure is True:
+
+  # Plot the true / actual progress and the dual gap            
+  tree.genLeafList()
+  tree.leafList.sort(key=(lambda x: x.nodesVisited))
+  actualSizes = [0]
+  for i, leaf in enumerate(tree.leafList):
+    actualSizes.append(min(1.0, leaf.nodesVisited / tree.numNodes))
+  p.plotProgress(actualSizes, "actual")
+                
+                
+if args.graph is not None or args.progress_measure is not None:
+  p.reveal()
+  

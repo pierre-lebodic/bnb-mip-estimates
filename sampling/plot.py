@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
 import math
+import os
+
 from operator import itemgetter
+
+# Save to current directory rather than root
+plt.rcParams["savefig.directory"] = "/home/daniel/Research/treesize-estimation/plots"
 
 def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
     assert(confidenceLevel < 1)
@@ -9,16 +14,24 @@ def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,
     upper_ci = [estimates[i] + math.sqrt(1/(1 - confidenceLevel)) * stds[i] for i in range(len(estimates))]
     plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label=str(SampleMethod))
     if( noplot == 0 ):
-        plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4, label = "$Conf. %2.2f $"% (confidenceLevel) )
+        plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4) #, label = "$Conf. %2.2f $"% (confidenceLevel) )
     plt.xlabel('$k$',fontsize=18)
     plt.ylabel('$E_k$',fontsize=18)
     plt.title("{}".format(filename.rsplit('/',1)[-1]))
     plt.axhline(y=treesize,color='k',linestyle='-')
     plt.ylim([0,treesize*2])
-    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    lgd = plt.legend()#bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.rc('legend',fontsize=20)
     plt.tight_layout()
-    plt.savefig("{}.{}.png".format(filename,cmdstr))
+    #plt.savefig("{}.{}.png".format(filename,cmdstr), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    #plt.show()
+
+def reveal():
+  plt.show()
+
+def save(fig_id, filename):
+  plt.figure(fig_id)
+  plt.savefig(filename)
 
 def plotDepths(samples,filename,SampleMethod):
     plt.figure(2)
@@ -112,12 +125,24 @@ def plotTreeProfile(samples, filename, SampleMethod,sampleNumModelTree=-1):
         print("Tree Profile estimation ({} samples):".format(sampleNumModelTree))
         print("%-23s %g" %("Estimation:", modelTreeData["estimation"]))
 
-    plt.legend(loc=2)
-    plt.savefig("{}.profile.png".format(filename))
+    lgd = plt.legend(loc=2)
+    plt.savefig("{}.profile.png".format(filename), bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.close()
 
 
+# Make the line styles change for each plot
+from itertools import cycle
+lines = [":", "--", "-"]
+linecycler = cycle(lines)
 
+# Plot the evolution of the progress measure vs the number of samples
+def plotProgress(progress, name):
+    plt.figure(2)
+    plt.xlabel('Leaves sampled')
+    plt.ylabel('Progress measure')
+    #plt.scatter(range(len(progress)), progress)
+    plt.plot(range(len(progress)), progress, next(linecycler), label = name)
+    plt.legend(loc='lower right', bbox_to_anchor=(1, 0))
 
 def plotSingleEstimates(samples,treesize,filename,SampleMethod):
     plt.figure(2)
