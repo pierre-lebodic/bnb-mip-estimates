@@ -21,7 +21,7 @@ class GenericBranch:
 
 class BiasedPhi(GenericBranch):
 
-    btype = "$p_k$"
+    btype = "p_k"
     graphShape = "--"
     phiBased = True
 
@@ -34,7 +34,7 @@ class BiasedPhi(GenericBranch):
 
 class Evenly(GenericBranch):
 
-    btype = "$p_u$"
+    btype = "p_u"
     graphShape = "-"
     phiBased = False
 
@@ -43,4 +43,3 @@ class Evenly(GenericBranch):
 
     def getPhi(node,child):
         return 0.5
-

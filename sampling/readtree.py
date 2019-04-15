@@ -41,7 +41,7 @@ def readTree(filename,zeroPhi):
             cnode.addGains()
             cnode.parent.addPhi(zeroPhi)
             cnode.parent.markReady(nodesSeen, upperBound, lowerBound)
-            
+
             if cnode.parent.num > 0 and not cnode.parent.num in visited:
               visited.add(cnode.parent.num)
               cnode.parent.nodesVisited = len(visited)
@@ -60,11 +60,11 @@ def readTree(filename,zeroPhi):
             cnode = nodes[num]
             cnode.leaf = True
             cnode.parent.markReady(nodesSeen)
-            
+
             if not num in visited:
               visited.add(num)
               cnode.nodesVisited = len(visited)
-            
+
             if cnode.lpValue >= 1e+20:
                 if cnode.children != []: # tricky bug where an inner node is pruned and upper bounds change
                     cnode.lpValue = cnode.children[0].lpValue
@@ -79,6 +79,7 @@ def readTree(filename,zeroPhi):
     tree.numNodes = nodesSeen
     print('Total tree size (number of nodes) = {}'.format(nodesSeen))
     print('Total nodes visited = {}'.format(len(visited)))
+
     return tree
 
 def readSVBTree(left,right,gap):

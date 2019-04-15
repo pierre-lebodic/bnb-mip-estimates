@@ -10,8 +10,27 @@ import branchclasses as bc
 import samplegenerators as sg
 import progressmeasure as pm
 import plot as p
+import textwrap
 
-parser = argparse.ArgumentParser()
+
+epilog="""
+Usage Examples
+==============
+
+## 1.
+
+Process the leaves in the order in which SCIP finds them ('-o' option). Then use --debug to also write out additional files
+such as a probs file that contains the leaf counts.
+
+./main.py -f ../trees/abc/small/blend2.abc 1000000 --debug -o --method 1 -w
+
+NOTE: It is necessary to specify -w because otherwise, the tree is not processed (sampled).
+"""
+
+parser = argparse.ArgumentParser(
+    epilog=textwrap.dedent(epilog),
+    formatter_class = argparse.RawDescriptionHelpFormatter
+    )
 source = parser.add_mutually_exclusive_group(required=True)
 parser.add_argument("-r","--replacement",help="samples tree with replacement",action="store_true")
 parser.add_argument("-D","--debug",help="outputs debug files",action="store_true")
@@ -200,19 +219,18 @@ for method in methods:
                 p.plotDepths(samples,args.filename,method)
                 p.plotSingleEstimates(samples,tree.root.subtreesize,args.filename,method)
                 p.plotTreeProfile(samples, args.filename, method, args.modeltree_num)
-            
+
 # Plot additional progress measures
 if args.progress_measure is True:
 
-  # Plot the true / actual progress and the dual gap            
+  # Plot the true / actual progress and the dual gap
   tree.genLeafList()
   tree.leafList.sort(key=(lambda x: x.nodesVisited))
   actualSizes = [0]
   for i, leaf in enumerate(tree.leafList):
     actualSizes.append(min(1.0, leaf.nodesVisited / tree.numNodes))
   p.plotProgress(actualSizes, "actual")
-                
-                
-if args.graph is not None or args.progress_measure is not None:
-  p.reveal()
-  
+
+
+# if args.graph is not None or args.progress_measure is not None:
+#   p.reveal()

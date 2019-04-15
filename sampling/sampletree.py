@@ -13,7 +13,7 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
     sampleEstimates = []
     progressmeasures = []
     resourcemeasures = []
-    
+
     # Use online tree size predictions
     if SampleMethod.forecast == "window":
       measurer = pm.RollingAverage(SampleMethod.windowsize, SampleMethod.withacceleration)
@@ -42,15 +42,15 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             next_accprogressmeasure = min(1, prev_accprogressmeasure + sample.totalPhi)
             next_accresourcemeasure = 2*sampleCount - 1
             resourcemeasures.append(prev_accresourcemeasure - next_accresourcemeasure)
-            
+
             # Compute tree size based on new measurements
             if measurer is not None:
               sampleEstimates.append(measurer.insert(next_accprogressmeasure, next_accresourcemeasure))
-              
+
             # Remember previous measurements
             prev_accprogressmeasure = next_accprogressmeasure
             prev_accresourcemeasure = next_accresourcemeasure
-              
+
         elif SampleMethod.withReplacement:
             averageAcc += sample.totalSize
             sampleEstimates.append(averageAcc/sampleCount)
@@ -60,11 +60,11 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             sampleEstimates.append(averageAcc/probAcc)
         if debug:
             debugEst.write(str(sample.totalSize)+"\n")
-            debugProbs.write(str(sample.totalPhi)+"\n")
+            debugProbs.write("{} {}\n".format(str(sample.totalPhi), sample.nodesVisited)+"\n")
             debugTotal.write(str(sampleEstimates[-1])+"\n")
-    
-    #sampleEstimates = smooth(sampleEstimates)        
-            
+
+    #sampleEstimates = smooth(sampleEstimates)
+
     stds = calculateStds(sampleSet,notWeighted)
     writeTotal(sampleEstimates,filename,SampleMethod)
     return (sampleSet,sampleEstimates,stds)

@@ -159,13 +159,13 @@ def plotSingleEstimates(samples,treesize,filename,SampleMethod):
 
 def plotSeenNodes(samples,treesize,filename,SampleMethod):
     plt.figure(2)
-    seen = [sample.online if sample.online <= treesize else treesize for sample in samples]
+    seen = [sample.nodesVisited if sample.nodesVisited <= treesize else treesize for sample in samples]
     plt.scatter(range(len(seen)),seen,s=1)
     plt.xlim(xmin=0)
     plt.ylim(ymin=0)
     plt.xlabel('n')
-    plt.ylabel('nodes seen at taking of sample n')
-    plt.title('Seen nodes')
+    plt.ylabel('nodes visited until leaf n')
+    plt.title('Visited nodes')
     plt.axhline(y=treesize,color='r',linestyle='-')
     plt.savefig("{}.s.png".format(filename))
     plt.close()
