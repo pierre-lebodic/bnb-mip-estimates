@@ -3,6 +3,71 @@ import plot as p
 import random
 import queue
 import sys
+from ssg import SSG, SSGElem
+import logging
+from operator import attrgetter
+
+logger = logging.getLogger(__name__)
+
+# set level to 'logging.DEBUG' to enable debug output for this module
+logger.setLevel(logging.WARNING)
+
+def computeSSG(nodes, upperbounds):
+    """Compute SSG after entire tree has been read, and order of nodes is known
+
+    Some nodes are never revisited, because they are not branched,
+    and not removed either (probably cut off due to nonchronological backtracking).
+    Therefore, we compute the ssg in an a-posteriori process
+    """
+    ssg = SSG()
+
+    # we sort the nodes by the 'step' attribute
+    nodes.sort(key = attrgetter("step"))
+
+    ubidx = 0
+
+    logger.debug("Upper Bounds at {}".format(upperbounds))
+
+    for n in nodes:
+
+        logger.debug("Node {}, Step {}".format(n.num, n.step))
+        # update SSG whenever a new upper bound became available
+        if ubidx < len(upperbounds):
+            ubstep, ub = upperbounds[ubidx]
+            update = False
+
+            # loop through upper bounds as long as the node step count has not been reached.
+            while ubstep < n.step:
+                update = True
+                ubidx += 1
+                if ubidx < len(upperbounds):
+                    ubstep, ub = upperbounds[ubidx]
+                else:
+                    break
+            if update:
+                ssg.updateUpperbound(upperbounds[ubidx - 1][1])
+
+
+        # add the children of the node.
+        for c in n.children:
+            ssg.addNode(c)
+
+        # delete the node. Note that node 0, the parent of the root, is not added.
+        if n.num > 0:
+            ssg.deleteNode(n)
+
+        # the root is special. As in SCIP, we always make a split into left and right subtree. This also leads
+        # to a proper update of the SSG value, which is otherwise inconsistent at the root node
+        if n.num == 1:
+            ssg.splitChildren()
+
+
+
+        n.ssg = ssg.getValue()
+
+
+    logger.debug("SSG at termination: {}".format(str(ssg)))
+    return ssg.getValue()
 
 def readTree(filename,zeroPhi):
     f = open(filename, 'r')
@@ -12,9 +77,12 @@ def readTree(filename,zeroPhi):
     lowerBound = None
     nodesSeen = 0
     visited = set()
+    upperbounds = [] # save steps at which new incumbent solutions have been found
+
 
     print(">Reading Tree...")
-    for line in f:
+    for step, line in enumerate(f):
+        logger.debug(line)
         buf = line.split()
         cmd = buf[0]
         if cmd == 'N':
@@ -25,8 +93,14 @@ def readTree(filename,zeroPhi):
                 print(">Adding node",num,"...")
             parent.addChild(tn.TreeNode(num,parent))
             nodes.append(parent.children[-1])
+            parent.children[-1].addlpValue(parent.lpValue)
             nodesSeen += 1
             nodes[-1].nodesSeen = nodesSeen
+
+            # increase step counter of parent
+            # increase step counter of node only until it has children
+            if len(parent.children) == 0:
+                parent.step = step
 
             if parent.num > 0 and not parent.num in visited:
               visited.add(parent.num)
@@ -37,10 +111,16 @@ def readTree(filename,zeroPhi):
             num = int(buf[1])
             cnode = nodes[num]
             cnode.addDepth(int(buf[2]))
+            oldlpValue = cnode.lpValue
             cnode.addlpValue(float(buf[3]))
+
             cnode.addGains()
             cnode.parent.addPhi(zeroPhi)
             cnode.parent.markReady(nodesSeen, upperBound, lowerBound)
+
+            # increase step counter of node only until it has children
+            if len(cnode.children) == 0:
+                cnode.step = step
 
             if cnode.parent.num > 0 and not cnode.parent.num in visited:
               visited.add(cnode.parent.num)
@@ -49,6 +129,8 @@ def readTree(filename,zeroPhi):
         elif cmd == 'U':
             ### NEW GLOBAL UPPER BOUND ###
             upperBound = float(buf[1])
+            upperbounds.append((step, upperBound))
+
 
         elif cmd == 'L':
             ### NEW GLOBAL LOWER BOUND ###
@@ -60,10 +142,14 @@ def readTree(filename,zeroPhi):
             cnode = nodes[num]
             cnode.leaf = True
             cnode.parent.markReady(nodesSeen)
+            # increase step counter of node only until it has children
+            if len(cnode.children) == 0:
+                cnode.step = step
 
             if not num in visited:
               visited.add(num)
               cnode.nodesVisited = len(visited)
+
 
             if cnode.lpValue >= 1e+20:
                 if cnode.children != []: # tricky bug where an inner node is pruned and upper bounds change
@@ -76,6 +162,8 @@ def readTree(filename,zeroPhi):
     f.close()
     tree = tn.Tree(nodes[1])
     tree.root.calcSubTreeSize()
+    ssgvalue = computeSSG(nodes, upperbounds)
+    logger.debug("SSG Value is {}".format(ssgvalue))
     tree.numNodes = nodesSeen
     print('Total tree size (number of nodes) = {}'.format(nodesSeen))
     print('Total nodes visited = {}'.format(len(visited)))

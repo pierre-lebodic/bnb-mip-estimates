@@ -21,18 +21,18 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
       measurer = pm.DoubleExponentialSmoothing("Brown", SampleMethod.alpha, SampleMethod.beta)
     else:
       measurer = None
-      
+
     if debug:
         debugEst = open("{}.{}.{}.est".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
         debugProbs = open("{}.{}.{}.probs".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
         debugTotal = open("{}.{}.{}.total".format(filename,SampleMethod.branchType,SampleMethod.genMethod),'w')
-    
+
     averageAcc = 0
     probAcc = 0
     sampleCount = 0
     prev_accprogressmeasure = 0
     prev_accresourcemeasure = 0
-    
+
     for sample in samplegen:
         sampleCount += 1
         sampleSet.append(sample)
@@ -60,7 +60,7 @@ def sampleTree(tree,samplenum,SampleMethod,filename,debug,seed,notWeighted):
             sampleEstimates.append(averageAcc/probAcc)
         if debug:
             debugEst.write(str(sample.totalSize)+"\n")
-            debugProbs.write("{} {}\n".format(str(sample.totalPhi), sample.nodesVisited)+"\n")
+            debugProbs.write("{} {} {}\n".format(str(sample.totalPhi), sample.nodesVisited, sample.ssg)+"\n")
             debugTotal.write(str(sampleEstimates[-1])+"\n")
 
     #sampleEstimates = smooth(sampleEstimates)

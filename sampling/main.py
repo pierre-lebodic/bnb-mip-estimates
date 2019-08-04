@@ -11,7 +11,9 @@ import samplegenerators as sg
 import progressmeasure as pm
 import plot as p
 import textwrap
+import logging
 
+logging.basicConfig(format='[%(filename)s on %(asctime)s] - %(message)s', datefmt='%d-%b-%y %H:%M:%S', stream=sys.stdout)
 
 epilog="""
 Usage Examples

@@ -9,6 +9,7 @@ class TreeNode:
         self.leftorright = None # Is this node the left or right child of its parent? 0 for left, 1 for right
         self.children = []
         self.lpValue = None
+        self.firstlpValue = None
         self.gains = [None, None]
         self.depth = None
         self.phi = [None, None] # stores [phi^-l, phi^-r]
@@ -21,6 +22,8 @@ class TreeNode:
         self.leaf = False
         self.curGap = 0
         self.nodesVisited = 1e+20 # The number of nodes visited up to (including) this one
+        self.ssg = -1 # The Subtree Sum Gap when this node was processed
+        self.step = -1 # the last step at which this node has been updated
 
     def __iter__(self):
         yield self
@@ -33,6 +36,8 @@ class TreeNode:
         self.children[-1].leftorright = len(self.children)-1
 
     def addlpValue(self,value):
+        if self.lpValue is None:
+            self.firstlpValue = value
         self.lpValue = value
 
     def addGains(self):
@@ -152,7 +157,7 @@ class TreeNode:
         else:
             self.children[0].genLeaves(leafList)
             self.children[1].genLeaves(leafList)
-            
+
     def checkNode(self):
         if self.depth > 0:
             # every non root node must have a parent
