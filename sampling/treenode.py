@@ -3,12 +3,13 @@ from math import sqrt
 class TreeNode:
 
     def __init__(self, num, parent):
-        self.num = num
+        self.num = num #number in which the node appears in vbc file (root -> 0)
         self.parent = parent
         self.subtreesize = None
         self.leftorright = None # Is this node the left or right child of its parent? 0 for left, 1 for right
         self.children = []
         self.lpValue = None
+        self.firstlpValue = None
         self.gains = [None, None]
         self.depth = None
         self.phi = [None, None] # stores [phi^-l, phi^-r]
@@ -17,8 +18,12 @@ class TreeNode:
         self.totalSize = 1 # the size estimated by this leaf
         self.probsum = 1 # used for sampling without replacement
         self.ready = False # used in  "online" sampling
-        self.online = 1e+20
+        self.online = 1e+20 # Stores the tree size at the time this node was ready
         self.leaf = False
+        self.curGap = 0
+        self.nodesVisited = 1e+20 # The number of nodes visited up to (including) this one
+        self.ssg = -1 # The Subtree Sum Gap when this node was processed
+        self.step = -1 # the last step at which this node has been updated
 
     def __iter__(self):
         yield self
@@ -31,6 +36,8 @@ class TreeNode:
         self.children[-1].leftorright = len(self.children)-1
 
     def addlpValue(self,value):
+        if self.lpValue is None:
+            self.firstlpValue = value
         self.lpValue = value
 
     def addGains(self):
@@ -92,14 +99,14 @@ class TreeNode:
             x = 1 + 1/(x**lr - 1)
         self.phi = [1-1/x, 1/x]
 
-    def markReady(self,numNodes):
+    def markReady(self,numNodes, upperBound=0, lowerBound=0):
         """
         Used to determine online order of leaves
         """
         if self.phi != [None,None] and (self.parent.ready == True):
             self.ready = True
             for child in self.children:
-                child.markReady(numNodes)
+                child.markReady(numNodes, upperBound, lowerBound)
         elif self.leaf == True:
             self.online = numNodes
 
@@ -145,9 +152,28 @@ class TreeNode:
             if self.lpValue is None:
                 self.lpValue = 1e+20
             leafList.append(self)
+            #print('Found leaf -- node {} is a leaf. self.leaf = {}, self.online = {}. self.nodesVisited = {}'.format(self.num, self.leaf, self.online, self.nodesVisited))
+            #assert self.leaf == True
         else:
             self.children[0].genLeaves(leafList)
             self.children[1].genLeaves(leafList)
+
+    def checkNode(self):
+        if self.depth > 0:
+            # every non root node must have a parent
+            if self.parent is None:
+                return False
+            if self.parent.children == []:
+                return False
+
+            if self.parent.children[self.leftorright] != self:
+                return False
+
+        if self.children == []:
+            return True
+        else:
+            return self.children[0].checkNode() and self.children[1].checkNode()
+
 
 class Tree:
 
@@ -158,3 +184,6 @@ class Tree:
     def genLeafList(self):
         self.leafList = []
         self.root.genLeaves(self.leafList)
+
+    def check(self):
+        return self.root.checkNode()

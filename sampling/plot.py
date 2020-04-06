@@ -1,23 +1,37 @@
 import matplotlib.pyplot as plt
 import math
+import os
+
+from operator import itemgetter
+
+# Save to current directory rather than root
+plt.rcParams["savefig.directory"] = "/home/daniel/Research/treesize-estimation/plots"
 
 def plotEstimates(estimates,stds,SampleMethod,GenClass,treesize,filename,cmdstr,seed,confidenceLevel,noplot):
     assert(confidenceLevel < 1)
     plt.figure(1)
     lower_ci = [estimates[i] - math.sqrt(1/(1 - confidenceLevel)) * stds[i] for i in range(len(estimates))]
     upper_ci = [estimates[i] + math.sqrt(1/(1 - confidenceLevel)) * stds[i] for i in range(len(estimates))]
-    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label="%s %s"%(SampleMethod.branchType,GenClass.genMethod))
+    plt.plot(range(len(estimates)),estimates,SampleMethod.colour+SampleMethod.graphShape,label=str(SampleMethod))
     if( noplot == 0 ):
-        plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4, label = "$Conf. %2.2f $"% (confidenceLevel) )
+        plt.fill_between(range(len(estimates)), lower_ci, upper_ci, color = SampleMethod.colour, alpha = 0.4) #, label = "$Conf. %2.2f $"% (confidenceLevel) )
     plt.xlabel('$k$',fontsize=18)
     plt.ylabel('$E_k$',fontsize=18)
     plt.title("{}".format(filename.rsplit('/',1)[-1]))
     plt.axhline(y=treesize,color='k',linestyle='-')
     plt.ylim([0,treesize*2])
-    plt.legend()
+    lgd = plt.legend()#bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.rc('legend',fontsize=20)
     plt.tight_layout()
-    plt.savefig("{}.{}.png".format(filename,cmdstr))
+    #plt.savefig("{}.{}.png".format(filename,cmdstr), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    #plt.show()
+
+def reveal():
+  plt.show()
+
+def save(fig_id, filename):
+  plt.figure(fig_id)
+  plt.savefig(filename)
 
 def plotDepths(samples,filename,SampleMethod):
     plt.figure(2)
@@ -31,6 +45,104 @@ def plotDepths(samples,filename,SampleMethod):
     plt.savefig("{}.{}.{}.d.png".format(filename,SampleMethod.branchType,SampleMethod.genMethod))
     plt.close()
 
+
+def getModelTreeDataFromProfile(depth2count : dict) -> dict:
+    """computes relevant model tree data from a depth count map.
+    """
+    depthProfiles = sorted(depth2count.items(), key = itemgetter(0))
+    lastfulldepth = minwaistdepth = maxwaistdepth = 0
+    maxdepth = depthProfiles[-1][0]
+
+    maxcount = 0
+    for depth, count in depthProfiles:
+        if count == 2 ** depth:
+            lastfulldepth = depth
+
+        if count > maxcount:
+             minwaistdepth = maxwaistdepth = depth
+             maxcount = count
+        elif count == maxcount:
+            maxwaistdepth = depth
+
+    avgwaist = (minwaistdepth + maxwaistdepth) / 2.0
+    gamma_prod = 2
+
+    modelTreeWidths = []
+    modelTreeWidths.append(1)
+    estimation = 1
+    for i in range(1, maxdepth + 1):
+        estimation += gamma_prod
+        modelTreeWidths.append(gamma_prod)
+        if i < lastfulldepth:
+            gamma = 2
+        elif i < avgwaist:
+            gamma = 2.0 - (i - lastfulldepth + 1.0)/(avgwaist - lastfulldepth + 1.0)
+        else:
+            gamma = 1.0 - (i - avgwaist + 1.0)/(maxdepth - avgwaist + 1.0)
+
+        gamma_prod *= gamma
+
+    return {
+        "widths" : modelTreeWidths,
+        "lastfulldepth" : lastfulldepth,
+        "minwaistdepth" : minwaistdepth,
+        "maxwaistdepth" : maxwaistdepth,
+        "maxdepth"      : maxdepth,
+        "estimation"    : estimation
+    }
+
+def plotTreeProfile(samples, filename, SampleMethod,sampleNumModelTree=-1):
+    """plots a tree profile based on the samples, i.e., a histogram per depth.
+    """
+    nodeseen = set()
+    depth2count = {}
+    # collect nodes by assuming that node selection goes immediately down to a leaf/sample
+    sampleNumModelTree = min(len(samples), sampleNumModelTree)
+    if sampleNumModelTree == -1:
+        modelTreeData = None
+
+    for idx,s in enumerate(samples):
+        assert s.children == []
+        assert s not in nodeseen, "s has the number {}".format(s.num)
+        parent = s
+        while parent.depth is not None and parent not in nodeseen:
+            nodeseen.add(parent)
+            depth2count[parent.depth] = depth2count.get(parent.depth, 0) + 1
+            parent = parent.parent
+
+        if sampleNumModelTree == idx + 1:
+            modelTreeData = getModelTreeDataFromProfile(depth2count)
+
+    depths, counts = zip(*sorted(depth2count.items(), key=itemgetter(0)))
+    plt.figure(2, figsize=(10,7))
+    plt.plot(depths, counts, label = "samples")
+    plt.title("Tree profile")
+    plt.xlabel('Depth')
+    plt.ylabel('Width of Tree')
+    if modelTreeData is not None:
+        widths =  modelTreeData["widths"]
+        plt.plot(range(len(widths)), widths, label = "model tree({} samples)".format(sampleNumModelTree), linestyle='dashed')
+        print("Tree Profile estimation ({} samples):".format(sampleNumModelTree))
+        print("%-23s %g" %("Estimation:", modelTreeData["estimation"]))
+
+    lgd = plt.legend(loc=2)
+    plt.savefig("{}.profile.png".format(filename), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.close()
+
+
+# Make the line styles change for each plot
+from itertools import cycle
+lines = [":", "--", "-"]
+linecycler = cycle(lines)
+
+# Plot the evolution of the progress measure vs the number of samples
+def plotProgress(progress, name):
+    plt.figure(2)
+    plt.xlabel('Leaves sampled')
+    plt.ylabel('Progress measure')
+    #plt.scatter(range(len(progress)), progress)
+    plt.plot(range(len(progress)), progress, next(linecycler), label = name)
+    plt.legend(loc='lower right', bbox_to_anchor=(1, 0))
 
 def plotSingleEstimates(samples,treesize,filename,SampleMethod):
     plt.figure(2)
@@ -47,13 +159,13 @@ def plotSingleEstimates(samples,treesize,filename,SampleMethod):
 
 def plotSeenNodes(samples,treesize,filename,SampleMethod):
     plt.figure(2)
-    seen = [sample.online if sample.online <= treesize else treesize for sample in samples]
+    seen = [sample.nodesVisited if sample.nodesVisited <= treesize else treesize for sample in samples]
     plt.scatter(range(len(seen)),seen,s=1)
     plt.xlim(xmin=0)
     plt.ylim(ymin=0)
     plt.xlabel('n')
-    plt.ylabel('nodes seen at taking of sample n')
-    plt.title('Seen nodes')
+    plt.ylabel('nodes visited until leaf n')
+    plt.title('Visited nodes')
     plt.axhline(y=treesize,color='r',linestyle='-')
     plt.savefig("{}.s.png".format(filename))
     plt.close()

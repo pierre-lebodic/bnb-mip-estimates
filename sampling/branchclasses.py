@@ -43,4 +43,3 @@ class Evenly(GenericBranch):
 
     def getPhi(node,child):
         return 0.5
-

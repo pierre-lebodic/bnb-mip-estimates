@@ -1,0 +1,7 @@
+*.png
+*.total
+*.est
+*.pyc
+.vscode
+.project
+.pydevproject
